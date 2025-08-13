@@ -1,7 +1,7 @@
 # Phone OSINT Terminal — Radar Tracker
 
 <p align="center">
-  <img src="docs/screenshot.png" alt="Phone OSINT Terminal Screenshot" width="700"/>
+  <img src="Screenshot.png" alt="Phone OSINT Terminal Screenshot" width="700"/>
 </p>
 
 **Phone OSINT Terminal — Radar Tracker** simulates a “hacker terminal” for open-source intelligence (OSINT) research on phone numbers. Enter a phone number and watch as a radar “sweeps” the map to locate the target by country, region, and carrier, with animated effects and a hacker-inspired UI.
