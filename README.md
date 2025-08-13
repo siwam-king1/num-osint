@@ -1,10 +1,17 @@
 # Phone OSINT Terminal — Radar Tracker
 
 <p align="center">
-  <img src="Screenshot.png" alt="Phone OSINT Terminal Screenshot" width="700"/>
+  <img src="Screenshot.png" alt="Phone Number OSINT Demo Screenshot" width="700" style="border-radius:16px;box-shadow:0 4px 24px rgba(0,255,102,0.25);"/>
+</p>
+<p align="center">
+  <span style="color:#00ff66;font-family:monospace;font-size:1.15rem;background:#111;padding:6px 18px;border-radius:8px;box-shadow:0 2px 12px rgba(0,255,102,0.07);">
+    Built by SIWAM KING — Caffeinated Code, Crafted for OSINT Hunters
+  </span>
 </p>
 
-**Phone OSINT Terminal — Radar Tracker** simulates a “hacker terminal” for open-source intelligence (OSINT) research on phone numbers. Enter a phone number and watch as a radar “sweeps” the map to locate the target by country, region, and carrier, with animated effects and a hacker-inspired UI.
+**[🔗 Live Demo](https://siwam-king1.github.io/num-osint/)**
+
+**num-osint** is a hacker-style phone number OSINT tool for reverse phone lookup, real-time phone location tracking, and carrier identification. Visualize results with animated radar mapping. Perfect for investigators, researchers, and cybersecurity professionals.
 
 > **For research and educational use only.**
 
@@ -89,13 +96,13 @@ No other setup or installation is needed.
 - **NumVerify** (APILayer) — phone number validation API.
 - **Leaflet.js** — mapping engine.
 - **OpenStreetMap Nominatim** — geocoding.
-- **UI/Logic:** [SIWAMKING](https://github.com/siwam-king1)
+- **UI/Logic:** [SIWAM KING](https://github.com/siwam-king1)
 
 ---
 
 ## License
 
 MIT License.  
-© 2025 SIWAMKING
+© 2025 SIWAM KING
 
 ---
