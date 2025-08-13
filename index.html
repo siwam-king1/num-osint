@@ -3,65 +3,285 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Phone OSINT Terminal — SIWAM KING</title>
+<title>Phone OSINT Terminal — Advanced Hacker Radar</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <style>
-  :root{--green:#00ff66;--bg:#000}
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--green);font-family:monospace}
-  header{padding:1rem;text-align:center;border-bottom:1px solid var(--green);font-size:clamp(1rem,4vw,1.4rem)}
-  .container{max-width:1100px;margin:12px auto;padding:12px}
-  .input-row{display:flex;gap:10px;flex-wrap:wrap}
-  input[type="text"]{flex:1;min-width:220px;padding:.6rem;border:1px solid var(--green);background:#000;color:var(--green)}
-  button{padding:.6rem 1rem;background:var(--green);border:1px solid var(--green);color:#000;font-weight:700;cursor:pointer}
-  .controls{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
-  #map{height:420px;border:1px solid var(--green);position:relative;overflow:hidden;margin-top:12px}
-  .results{border:1px solid var(--green);padding:12px;margin-top:12px;min-height:140px;max-height:220px;overflow:auto}
-  .line{margin:.3rem 0;white-space:pre-wrap;border-right:.12em solid var(--green);animation:typing 1.2s steps(40,end),blink .9s infinite}
-  @keyframes typing{from{width:0}to{width:100%}} @keyframes blink{from,to{border-color:transparent}50%{border-color:var(--green)}}
-  footer{border-top:1px solid var(--green);text-align:center;padding:8px;margin-top:12px;font-size:.85rem}
-  .howto{margin-top:12px;border:1px dashed var(--green);padding:8px;cursor:pointer}
-  .howto-content{display:none;margin-top:6px;font-size:.95rem}
-
-  /* Radar overlay styles */
-  .radar-overlay{
-    position:absolute;pointer-events:none;left:0;top:0;width:100%;height:100%;z-index:450;
-    display:flex;align-items:center;justify-content:center;transition:transform 1s ease, width 1s ease, height 1s ease;
+  :root {
+    --green: #00ff66;
+    --bg: #000;
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--green);
+    font-family: monospace;
+    overflow-x: hidden;
+  }
+  header {
+    padding: 1rem;
+    text-align: center;
+    border-bottom: 1px solid var(--green);
+    font-size: clamp(1rem, 4vw, 1.4rem);
+  }
+  .container {
+    max-width: 1100px;
+    margin: 12px auto;
+    padding: 12px;
+  }
+  .input-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  input[type="text"] {
+    flex: 1;
+    min-width: 220px;
+    padding: 0.6rem;
+    border: 1px solid var(--green);
+    background: #000;
+    color: var(--green);
+    outline-offset: 0;
+  }
+  input[type="text"]:focus {
+    border-color: #0f0;
+    box-shadow: 0 0 10px #00ff66aa;
+  }
+  button {
+    padding: 0.6rem 1rem;
+    background: var(--green);
+    border: 1px solid var(--green);
+    color: #000;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.3s;
+  }
+  button:hover:not(:disabled) {
+    background: #00cc44;
+  }
+  button:disabled {
+    background: #005500;
+    cursor: not-allowed;
+  }
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  #map {
+    height: 420px;
+    border: 1px solid var(--green);
+    position: relative;
+    overflow: hidden;
+    margin-top: 12px;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        rgba(0, 255, 102, 0.06),
+        rgba(0, 255, 102, 0.06) 1px,
+        transparent 1px,
+        transparent 2px
+      ),
+      #000;
+  }
+  .results {
+    border: 1px solid var(--green);
+    padding: 12px;
+    margin-top: 12px;
+    min-height: 140px;
+    max-height: 260px;
+    overflow: auto;
+    background: #001a00;
+    position: relative;
+    user-select: text;
+    animation: flicker 3s infinite alternate;
+  }
+  .line {
+    margin: 0.3rem 0;
+    white-space: pre-wrap;
+    border-right: 0.12em solid var(--green);
+  }
+  .typing-slow {
+    animation: typingSlow 2.6s steps(40, end), blink 1s infinite;
+  }
+  @keyframes typingSlow {
+    from { width: 0 }
+    to { width: 100% }
+  }
+  @keyframes blink {
+    from, to { border-color: transparent }
+    50% { border-color: var(--green) }
+  }
+  footer {
+    border-top: 1px solid var(--green);
+    text-align: center;
+    padding: 8px;
+    margin-top: 12px;
+    font-size: 0.85rem;
+  }
+  .howto {
+    margin-top: 12px;
+    border: 1px dashed var(--green);
+    padding: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .howto-content {
+    display: none;
+    margin-top: 6px;
+    font-size: 0.95rem;
   }
 
-  /* rotating beam (conic-gradient) */
-  .radar-beam{
-    width:80vmin;height:80vmin;border-radius:50%;opacity:.18;
-    background: conic-gradient(from 0deg, rgba(0,255,102,0.28) 0deg 10deg, rgba(0,255,102,0.06) 10deg 40deg, transparent 40deg 360deg);
-    mix-blend-mode:screen; animation:spin 2s linear infinite; transform-origin:center center;
-    box-shadow:0 0 50px rgba(0,255,102,0.06) inset;
+  /* Advanced radar overlay container */
+  #radarOverlay {
+    position: absolute;
+    pointer-events: none;
+    left: 0; top: 0;
+    width: 100%; height: 100%;
+    z-index: 500;
+    overflow: visible;
   }
-  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-
-  /* small ping that will be placed at marker */
-  .ping-dot{ width:160px;height:160px;border-radius:50%;border:2px solid rgba(0,255,102,0.9);pointer-events:none;
-    animation:pingAnim 1.8s infinite; box-shadow:0 0 30px rgba(0,255,102,0.12) }
-  @keyframes pingAnim{0%{transform:scale(.3);opacity:1}80%{transform:scale(1);opacity:0}100%{opacity:0}}
-
-  /* responsive tweaks */
-  @media(max-width:700px){
-    #map{height:300px}
-    .radar-beam{width:120vmin;height:120vmin}
+  /* Concentric expanding rings */
+  .radar-ring {
+    position: absolute;
+    border: 2px solid var(--green);
+    border-radius: 50%;
+    opacity: 2.8;
+    animation: radarExpand 4.2s ease-out infinite;
+    pointer-events: none;
   }
+.radar-ring:nth-child(1) {
+  width: 250px; height: 250px;
+  top: calc(50% - 125px);
+  left: calc(50% - 125px);
+  animation-delay: 0s;
+}
+.radar-ring:nth-child(2) {
+  width: 350px; height: 350px;
+  top: calc(50% - 175px);
+  left: calc(50% - 175px);
+  animation-delay: 1.4s;
+}
+.radar-ring:nth-child(3) {
+  width: 450px; height: 450px;
+  top: calc(50% - 225px);
+  left: calc(50% - 225px);
+  animation-delay: 2.8s;
+}
+
+
+
+  @keyframes radarExpand {
+    0% {
+      transform: scale(0.2);
+      opacity: 2.8;
+    }
+    70% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  /* Rotating radar beam */
+  .radar-beam {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 760px; height: 760px;
+    margin-left: -380px;
+    margin-top: -380px;
+    border-radius: 50%;
+    background:
+      conic-gradient(
+        from 0deg,
+        rgba(0, 255, 102, 0.3) 0deg 15deg,
+        rgba(0, 255, 102, 0.07) 15deg 50deg,
+        transparent 50deg 360deg
+      );
+    animation: spin 5s linear infinite;
+    filter: drop-shadow(0 0 6px rgba(0,255,102,0.6));
+    pointer-events: none;
+    mix-blend-mode: screen;
+  }
+  @keyframes spin {
+    from { transform: rotate(0deg) }
+    to { transform: rotate(360deg) }
+  }
+
+  /* Pulsing ping dot on marker */
+  .ping-dot {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    border: 3px solid rgba(0,255,102,0.9);
+    box-shadow: 0 0 30px rgba(0,255,102,0.3);
+    animation: pingPulse 2.2s infinite;
+    pointer-events: none;
+  }
+  @keyframes pingPulse {
+    0% { transform: scale(0.2); opacity: 2; }
+    80% { transform: scale(1); opacity: 01 }
+    100% { opacity: 0; }
+  }
+
+  /* Scanline overlay on map */
+  #map::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background:
+      repeating-linear-gradient(
+        0deg,
+        rgba(0,255,102,0.03),
+        rgba(0,255,102,0.03) 2px,
+        transparent 2px,
+        transparent 4px
+      );
+    pointer-events: none;
+    animation: scanlineMove 10s linear infinite;
+    mix-blend-mode: screen;
+    z-index: 400;
+  }
+  @keyframes scanlineMove {
+    from { background-position: 0 0 }
+    to { background-position: 0 100% }
+  }
+
+  /* Flicker glitch effect on results panel 
+  @keyframes flicker {
+    0%, 100% { opacity: 1; filter: none; }
+    10%, 30%, 50%, 70%, 90% {
+      opacity: 0.85;
+      filter: drop-shadow(0 0 4px var(--green));
+      transform: translateX(1px) skewX(-1deg);
+    }
+    20%, 40%, 60%, 80% {
+      opacity: 0.9;
+      filter: drop-shadow(0 0 6px var(--green));
+      transform: translateX(-1px) skewX(1deg);
+    }*/
 </style>
 </head>
 <body>
-<header>PHONE OSINT TERMINAL — SIWAM KING  </header>
+
+<header>PHONE OSINT TERMINAL — SIWAM KING</header>
+
 <div class="container">
   <div class="input-row">
-    <input type="text" id="phoneInput" placeholder="Enter phone number (international format preferred e.g. +919876543210 or 9198... )" />
+    <input type="text" id="phoneInput" placeholder="Enter phone number (e.g. +919876543210 or 9198... )" />
     <button id="scanBtn">SCAN</button>
-    <button id="downloadBtn">DOWNLOAD</button>
+    <button id="downloadBtn" style="display:none;">DOWNLOAD</button>
   </div>
 
   <div id="map">
- 
-    <div id="radarOverlay" class="radar-overlay" style="display:none">
-      <div id="radarBeam" class="radar-beam"></div>
+    <div id="radarOverlay">
+      <div class="radar-ring"></div>
+      <div class="radar-ring"></div>
+      <div class="radar-ring"></div>
+      <div class="radar-beam"></div>
     </div>
   </div>
 
@@ -69,283 +289,211 @@
 
   <div class="controls">
     <div class="howto" id="howtoToggle">[+] How to Use</div>
-    <div class="howto-content" id="howto">1. Enter phone number and click SCAN. 2. Full-map radar sweeps first. 3. When country found, radar flies to country center. 4. When state/city found, radar locks on and marker pings. 5. Download log with DOWNLOAD button.</div>
+    <div class="howto-content" id="howto">
+      1. Enter phone number and click SCAN.<br>
+      2. Radar sweeps full map with expanding rings and rotating beam.<br>
+      3. When country is found, radar zooms and centers on country.<br>
+      4. When location found, radar locks and pulses marker.<br>
+      5. Download scan log after completion.<br>
+      6. Enjoy hacker-style OSINT vibes.
+    </div>
   </div>
 </div>
 
-<footer>© 2025 OSINT Terminal By SIWAMKING — For research/educational use only.</footer>
+<footer>© 2025 OSINT Terminal — For research/educational use only.</footer>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script>
-/* -------------------------
-   Configuration / helpers
-   ------------------------- */
-const APILAYER_KEY = "7654af068a4129146951e75c6e8c19a3"; // your provided key
-const APILAYER_URL = "http://apilayer.net/api/validate"; // note: may be http; use a proxy for production
+<script>
+const TIMINGS = {
+  initialTypingDelay: 200,
+  connectDelay: 900,
+  apiMinimumSweepMs: 3500,
+  afterApiPause: 700,
+  countryAcquirePause: 1400,
+  locationResolvePause: 1100,
+  finalLockPause: 600,
+};
+
+const APILAYER_KEY = "7654af068a4129146951e75c6e8c19a3";
+const APILAYER_URL = "http://apilayer.net/api/validate";
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/search?format=json&q=";
 
 const resultsEl = document.getElementById('results');
 const radarOverlay = document.getElementById('radarOverlay');
-const radarBeam = document.getElementById('radarBeam');
+const downloadBtn = document.getElementById('downloadBtn');
+const scanBtn = document.getElementById('scanBtn');
+const mapDiv = document.getElementById('map');
 
-function logLine(text, delay = 0){
-  return new Promise(res=>{
-    setTimeout(()=>{
-      const d = document.createElement('div'); d.className='line'; d.textContent = text;
-      resultsEl.appendChild(d); resultsEl.scrollTop = resultsEl.scrollHeight;
-      res();
-    }, delay);
-  });
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function logLine(text, cls = 'line', typing = false) {
+  const d = document.createElement('div');
+  d.className = cls;
+  d.textContent = text;
+  if (typing) d.classList.add('typing-slow');
+  resultsEl.appendChild(d);
+  resultsEl.scrollTop = resultsEl.scrollHeight;
+  return d;
 }
 
-function clearLog(){ resultsEl.innerHTML = ""; }
+function clearLog() {
+  resultsEl.innerHTML = "";
+}
 
-/* -------------------------
-   Leaflet map init
-   ------------------------- */
 const map = L.map('map', { zoomControl: false }).setView([20, 0], 2);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution:'' }).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '' }).addTo(map);
 let currentMarker = null;
 let currentPingMarker = null;
 
-
-function latLngToOverlayPos(latlng){
-  const containerPoint = map.latLngToContainerPoint(latlng);
-  return { x: containerPoint.x, y: containerPoint.y };
-}
-
-/* Center radar overlay at pixel x,y and resize */
-function moveRadarToPixel(x, y, sizePx){
-  radarOverlay.style.display = "flex";
-  const mapRect = document.getElementById('map').getBoundingClientRect();
-
-  const centerX = x - mapRect.width/2;
-  const centerY = y - mapRect.height/2;
-  radarOverlay.style.transform = `translate(${centerX}px, ${centerY}px)`;
-  radarBeam.style.width = radarBeam.style.height = (sizePx) + 'px';
-}
-
-/* Show full-map sweep */
-function startFullSweep(){
-  radarOverlay.style.display = "flex";
-  radarOverlay.style.transform = `translate(0px, 0px)`;
-
-  const mapRect = document.getElementById('map').getBoundingClientRect();
-  const maxDim = Math.max(mapRect.width, mapRect.height) * 2; 
-  radarBeam.style.width = radarBeam.style.height = maxDim + 'px';
-  radarBeam.style.opacity = 0.5;
-}
-
-
-function hideRadar(){ radarOverlay.style.display = 'none'; }
-
-
-function placeMarkerWithPing(lat, lon){
-
-  if(currentMarker) { map.removeLayer(currentMarker); currentMarker=null; }
-  if(currentPingMarker) { map.removeLayer(currentPingMarker); currentPingMarker=null; }
-
+function placeMarkerWithPing(lat, lon) {
+  if (currentMarker) { map.removeLayer(currentMarker); currentMarker = null; }
+  if (currentPingMarker) { map.removeLayer(currentPingMarker); currentPingMarker = null; }
   currentMarker = L.marker([lat, lon]).addTo(map);
-
-
   const pingDiv = document.createElement('div');
   pingDiv.className = 'ping-dot';
-
-  const icon = L.divIcon({
-    html: pingDiv,
-    className: '',
-    iconSize: [160,160],
-    iconAnchor: [80,80]
-  });
-  currentPingMarker = L.marker([lat, lon], {icon: icon, interactive:false}).addTo(map);
+  const icon = L.divIcon({ html: pingDiv, className: '', iconSize: [160, 160], iconAnchor: [80, 80] });
+  currentPingMarker = L.marker([lat, lon], { icon: icon, interactive: false }).addTo(map);
 }
 
-/* Download results */
-function downloadLog(){
-  const text = resultsEl.innerText;
-  const blob = new Blob([text], {type:'text/plain'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'phone_osint_log.txt'; a.click();
-}
-
-
-async function geocode(query){
-  try{
-    const r = await fetch(NOMINATIM_URL + encodeURIComponent(query), {headers: {'Accept':'application/json'}});
-    if(!r.ok) return [];
-    const j = await r.json();
-    return j; 
-  }catch(e){
-    console.error('Geocode error', e);
+async function geocode(query) {
+  try {
+    const r = await fetch(NOMINATIM_URL + encodeURIComponent(query), { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) return [];
+    return await r.json();
+  } catch (e) {
+    console.error('geocode error', e);
     return [];
   }
 }
 
-/* Country fallback centers (if geocode fails) */
 const countryFallbacks = {
-  "India":[20.5937,78.9629],
-  "United States":[37.0902,-95.7129],
-  "United Kingdom":[55.3781,-3.4360],
-  
+  "India": [20.5937, 78.9629],
+  "United States": [37.0902, -95.7129],
+  "United Kingdom": [55.3781, -3.4360]
 };
 
-/* -------------------------
-   Scan logic (main)
-   ------------------------- */
-const scanBtn = document.getElementById('scanBtn');
-const toggleBtn = document.getElementById('toggleBtn');
-const downloadBtn = document.getElementById('downloadBtn');
-const howtoToggle = document.getElementById('howtoToggle');
-const howtoContent = document.getElementById('howto');
-
-toggleBtn.addEventListener('click', ()=> {
-  resultsEl.style.display = resultsEl.style.display === 'none' ? 'block' : 'none';
-});
-downloadBtn.addEventListener('click', downloadLog);
-howtoToggle.addEventListener('click', ()=> {
-  howtoContent.style.display = howtoContent.style.display === 'block' ? 'none' : 'block';
-});
-
 scanBtn.addEventListener('click', startScan);
+downloadBtn.addEventListener('click', () => {
+  const blob = new Blob([resultsEl.innerText], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'phone_osint_log.txt';
+  a.click();
+});
+document.getElementById('howtoToggle').addEventListener('click', () => {
+  const howtoEl = document.getElementById('howto');
+  howtoEl.style.display = howtoEl.style.display === 'block' ? 'none' : 'block';
+});
 
-async function startScan(){
+function showRadar() {
+  radarOverlay.style.display = 'block';
+}
+function hideRadar() {
+  radarOverlay.style.display = 'none';
+}
+
+async function startScan() {
   const phone = document.getElementById('phoneInput').value.trim();
-  if(!phone){ alert('Enter phone number'); return; }
-
+  if (!phone) { alert('Enter phone number'); return; }
   clearLog();
- 
-  startFullSweep();
-  await logLine(`[*] Initiating scan on target: ${phone}`, 150);
+  downloadBtn.style.display = 'none';
+  scanBtn.disabled = true;
+  showRadar();
 
+  logLine(`[*] Initiating scan on target: ${phone}`, 'line', true);
+  await sleep(TIMINGS.initialTypingDelay);
 
-  const apiPromise = fetch(`${APILAYER_URL}?access_key=${APILAYER_KEY}&number=${encodeURIComponent(phone)}&format=1`)
-    .then(r=>r.json())
-    .catch(e=>({error:e}));
+  const apiCall = fetch(`${APILAYER_URL}?access_key=${APILAYER_KEY}&number=${encodeURIComponent(phone)}&format=1`)
+    .then(r => r.json()).catch(e => ({ error: e }));
+  logLine(`[*] Connecting to telecom databases...`, 'line', true);
 
-  await logLine(`[*] Connecting to telecom databases...`, 600);
+  const sweepStart = Date.now();
+  await sleep(600);
+  const apiData = await apiCall;
+  const elapsed = Date.now() - sweepStart;
+  if (elapsed < TIMINGS.apiMinimumSweepMs) await sleep(TIMINGS.apiMinimumSweepMs - elapsed);
 
-  const apidata = await apiPromise;
-  console.log('apidata', apidata);
-
-  if(apidata.error){
-    await logLine(`[ERROR] API request failed: ${apidata.error}`, 400);
+  if (apiData.error) {
+    logLine(`[ERROR] API request failed: ${apiData.error}`, 'line', true);
     hideRadar();
+    scanBtn.disabled = false;
+    return;
+  }
+  if (!apiData.valid) {
+    logLine(`[ERROR] Invalid phone number or no data found.`, 'line', true);
+    hideRadar();
+    scanBtn.disabled = false;
     return;
   }
 
-  if(!apidata.valid){
-    await logLine(`[ERROR] Invalid phone number or no data found.`, 400);
-    hideRadar();
-    return;
-  }
+  await sleep(TIMINGS.afterApiPause);
 
- 
-  const rawCountry = apidata.country_name || '';
-  const countryClean = rawCountry.replace(/\(.*?\)/g,'').trim();
-  if(apidata.carrier) await logLine(`[OK] Carrier: ${apidata.carrier}`, 300);
-  if(rawCountry) await logLine(`[OK] Country: ${rawCountry} (${apidata.country_code||''})`, 300);
-  if(apidata.location) await logLine(`[OK] Location: ${apidata.location}`, 300);
-  if(apidata.line_type) await logLine(`[OK] Line Type: ${apidata.line_type}`, 300);
+  const rawCountry = apiData.country_name || '';
+  const countryClean = rawCountry.replace(/\(.*?\)/g, '').trim();
 
+  if (apiData.carrier) { logLine(`[OK] Carrier: ${apiData.carrier}`, 'line', true); await sleep(350); }
+  if (rawCountry) { logLine(`[OK] Country: ${rawCountry} (${apiData.country_code || ''})`, 'line', true); await sleep(350); }
+  if (apiData.location) { logLine(`[OK] Location: ${apiData.location}`, 'line', true); await sleep(350); }
+  if (apiData.line_type) { logLine(`[OK] Line Type: ${apiData.line_type}`, 'line', true); await sleep(350); }
 
-  if(countryClean){
-    await logLine(`[*] Locating country center for "${countryClean}"...`, 200);
-
-
+  let countryLat = null, countryLon = null;
+  if (countryClean) {
+    logLine(`[*] Locating country center for "${countryClean}"...`, 'line', true);
     const countryGeo = await geocode(countryClean);
-    let countryLat=null, countryLon=null;
-    if(countryGeo && countryGeo.length>0){
-      countryLat = parseFloat(countryGeo[0].lat);
-      countryLon = parseFloat(countryGeo[0].lon);
-    } else if(countryFallbacks[countryClean]){
+    if (countryGeo && countryGeo.length > 0) {
+      countryLat = parseFloat(countryGeo[0].lat); countryLon = parseFloat(countryGeo[0].lon);
+    } else if (countryFallbacks[countryClean]) {
       [countryLat, countryLon] = countryFallbacks[countryClean];
     }
 
-    if(countryLat && countryLon){
-  
-      const p = latLngToOverlayPos([countryLat, countryLon]);
- 
-      const latlng = L.latLng(countryLat, countryLon);
-      const pt = map.latLngToContainerPoint(latlng);
-      moveRadarToPixel(pt.x, pt.y, Math.max(200, Math.max(map.getSize().x, map.getSize().y) * 0.8));
-  
-      map.flyTo([countryLat, countryLon], 4, {duration:1.2});
-      await logLine(`[*] Country acquired — moving radar to ${countryClean}`, 800);
+    if (countryLat && countryLon) {
+      await map.flyTo([countryLat, countryLon], 4, { duration: 2.2 });
+      await sleep(1200);
+      logLine(`[*] Country acquired — radar locking on ${countryClean}`, 'line', true);
+      await sleep(TIMINGS.countryAcquirePause);
     } else {
-      await logLine(`[!] Country geocode failed — keeping full-map sweep`, 400);
+      logLine(`[!] Country geocode failed — keeping full-map sweep`, 'line', true);
     }
   }
 
+  let finalLat = null, finalLon = null;
+  let searchQuery = '';
+  if (apiData.location && countryClean) searchQuery = `${apiData.location}, ${countryClean}`;
+  else if (countryClean) searchQuery = countryClean;
 
-  let finalLat=null, finalLon=null;
-  let searchQuery = "";
-  if(apidata.location && countryClean) searchQuery = `${apidata.location}, ${countryClean}`;
-  else if(countryClean) searchQuery = countryClean;
-
-  if(searchQuery){
-    await logLine(`[*] Resolving location: "${searchQuery}"...`, 350);
+  if (searchQuery) {
+    logLine(`[*] Resolving location: "${searchQuery}"...`, 'line', true);
+    await sleep(500);
     const geoRes = await geocode(searchQuery);
-    if(geoRes && geoRes.length>0){
-      finalLat = parseFloat(geoRes[0].lat);
-      finalLon = parseFloat(geoRes[0].lon);
-
-      const pt = map.latLngToContainerPoint([finalLat, finalLon]);
-      moveRadarToPixel(pt.x, pt.y, 220); 
-      map.flyTo([finalLat, finalLon], apidata.location ? 10 : 5, {duration:1.0});
-      await logLine(`[*] Location resolved — locking on ${apidata.location || countryClean}`, 700);
-
-      
+    if (geoRes && geoRes.length > 0) {
+      finalLat = parseFloat(geoRes[0].lat); finalLon = parseFloat(geoRes[0].lon);
+      await map.flyTo([finalLat, finalLon], apiData.location ? 10 : 6, { duration: 1.8 });
+      await sleep(TIMINGS.locationResolvePause);
+      logLine(`[*] Location resolved — locking on ${apiData.location || countryClean}`, 'line', true);
       placeMarkerWithPing(finalLat, finalLon);
-      await logLine(`[*] Scan complete.`, 350);
+      await sleep(TIMINGS.finalLockPause);
+      logLine(`[*] Scan complete.`, 'line', true);
     } else {
-     
-      if(typeof countryLat !== 'undefined' && countryLat !== null){
+      if (countryLat && countryLon) {
         finalLat = countryLat; finalLon = countryLon;
-        const pt = map.latLngToContainerPoint([finalLat, finalLon]);
-        moveRadarToPixel(pt.x, pt.y, 280);
-        map.flyTo([finalLat, finalLon], 4, {duration:1.0});
+        await map.flyTo([finalLat, finalLon], 4, { duration: 1.6 });
+        await sleep(600);
         placeMarkerWithPing(finalLat, finalLon);
-        await logLine(`[*] Location not specific — marked country center. Scan complete.`, 350);
+        await sleep(400);
+        logLine(`[*] Location not specific — marked country center. Scan complete.`, 'line', true);
       } else {
-        await logLine(`[!] Could not resolve any coordinates. Scan stopped.`, 200);
+        logLine(`[!] Could not resolve any coordinates. Scan stopped.`, 'line', true);
       }
     }
   } else {
-    await logLine(`[!] No searchable location string available.`, 200);
+    logLine(`[!] No searchable location string available.`, 'line', true);
   }
 
-  
-  radarBeam.style.opacity = 0; 
-  setTimeout(()=>{ radarOverlay.style.display='none'; radarBeam.style.opacity=0.18; }, 900);
+  hideRadar();
+  downloadBtn.style.display = 'inline-block';
+  scanBtn.disabled = false;
 }
-
-/* -------------------------
-   Helper UI functions
-   ------------------------- */
-function moveRadarToPixel(x,y,sizePx){
-  
-  const mapEl = document.getElementById('map');
-  const mw = mapEl.clientWidth, mh = mapEl.clientHeight;
- 
-  const centerX = x - mw/2;
-  const centerY = y - mh/2;
-  radarOverlay.style.display = 'flex';
-  radarOverlay.style.transform = `translate(${centerX}px, ${centerY}px)`;
-  radarBeam.style.width = radarBeam.style.height = sizePx + 'px';
-}
-
-
-async function logLineSync(text, delay=0){ await logLine(text, delay); }
-
-/* -------------------------
-   Attach initial handlers
-   ------------------------- */
-
-radarOverlay.style.display = 'none';
-
-document.getElementById('downloadBtn').addEventListener('click', downloadLog);
-
-
 </script>
+
 </body>
 </html>
